@@ -1,0 +1,115 @@
+-- 🌸 SHIORA ONE — POSTGRESQL DATABASE SCHEMA (V1)
+-- Enterprise schema with UUID keys, Audit Timestamps, Indexing & Constraints
+
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- 1. USERS TABLE
+CREATE TABLE users (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email VARCHAR(255) NOT NULL UNIQUE,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    display_name VARCHAR(100) NOT NULL,
+    password_hash VARCHAR(255),
+    avatar_url VARCHAR(512),
+    avatar_public_id VARCHAR(255),
+    bio VARCHAR(500),
+    timezone VARCHAR(50) DEFAULT 'UTC',
+    locale VARCHAR(10) DEFAULT 'en',
+    role VARCHAR(20) NOT NULL DEFAULT 'USER',
+    is_email_verified BOOLEAN DEFAULT FALSE,
+    is_active BOOLEAN DEFAULT TRUE,
+    google_id VARCHAR(255) UNIQUE,
+    provider VARCHAR(20) DEFAULT 'LOCAL',
+    current_theme VARCHAR(50) DEFAULT 'japanese',
+    onboarding_completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_username ON users(username);
+
+-- 2. TASKS TABLE
+CREATE TABLE tasks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    status VARCHAR(20) NOT NULL DEFAULT 'TODO',
+    priority VARCHAR(20) NOT NULL DEFAULT 'MEDIUM',
+    due_date TIMESTAMP WITH TIME ZONE,
+    estimated_minutes INT,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_tasks_user ON tasks(user_id);
+CREATE INDEX idx_tasks_status ON tasks(status);
+
+CREATE TABLE task_tags (
+    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    tag VARCHAR(50) NOT NULL,
+    PRIMARY KEY (task_id, tag)
+);
+
+-- 3. NOTES TABLE
+CREATE TABLE notes (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    content TEXT,
+    folder_name VARCHAR(100) DEFAULT 'General',
+    is_pinned BOOLEAN DEFAULT FALSE,
+    color VARCHAR(20) DEFAULT '#d4708a',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_notes_user ON notes(user_id);
+
+-- 4. ALARMS TABLE
+CREATE TABLE alarms (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    alarm_time VARCHAR(10) NOT NULL,
+    label VARCHAR(100) NOT NULL,
+    challenge_type VARCHAR(20) DEFAULT 'NONE',
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 5. MOOD ENTRIES TABLE
+CREATE TABLE mood_entries (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    mood VARCHAR(20) NOT NULL,
+    note VARCHAR(255),
+    logged_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 6. HABITS TABLE
+CREATE TABLE habits (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    category VARCHAR(50) DEFAULT 'Health',
+    streak_count INT DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 7. VIRTUAL PET STATE TABLE
+CREATE TABLE pet_state (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+    pet_type VARCHAR(20) DEFAULT 'cat',
+    pet_name VARCHAR(50) DEFAULT 'Hana',
+    happiness_level INT DEFAULT 85,
+    total_xp INT DEFAULT 2450,
+    level INT DEFAULT 7,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
